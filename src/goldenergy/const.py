@@ -1,7 +1,8 @@
 ENDPOINT = "https://api-clientes.goldenergy.pt/api"
 LOGIN_PATH = "/user-auth/token"
 
-CONTRACT_LIST_PATH = "/contracts/single"
+CONTRACT_PATH = "/contracts/single"
+CONTRACT_LIST_PATH = "/contracts/list"
 CONSUMPTIONS_PATH = "/consumptions/chart-info"
 
 JSON_CONTENT = "application/json"

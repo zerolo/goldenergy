@@ -1,4 +1,5 @@
 import logging
+import json
 
 from .connection import Connection
 from .const import *
@@ -8,19 +9,23 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-class Goldenergy:
-    def __init__(self, session):
+class Goldenergy(dict):
+    def __init__(self, session, code, password):
         self._connection = Connection(session)
-        self._contract = None
+        self._contract: Contract = None
         self._last_consumption = None
+        self._code = code
+        self._password = password
 
-    async def login(self, code, password):
+        dict.__init__(self, session=session, code=code, password=password)
+
+    async def login(self):
         _LOGGER.debug("Goldenergy API Login")
         url = ENDPOINT + LOGIN_PATH
 
         data = {
-            CODE_PARAM: code,
-            PWD_PARAM: password
+            CODE_PARAM: self._code,
+            PWD_PARAM: self._password
         }
 
         res = await self._connection.api_request(url, method="post", data=data)
@@ -35,7 +40,7 @@ class Goldenergy:
     async def get_contract(self, contract_number: str) -> Contract:
         _LOGGER.debug("Goldenergy API Contract")
 
-        url = ENDPOINT + CONTRACT_LIST_PATH
+        url = ENDPOINT + CONTRACT_PATH
 
         contract_api_response = await self._connection.api_request(url, params={"ContractNo": contract_number})
         contract = contract_api_response["result"]
@@ -43,13 +48,33 @@ class Goldenergy:
         self._contract = Contract.from_dict(contract)
         return self._contract
 
-    async def get_last_invoice(self, contract_number: str) -> LastInvoice:
+    async def get_active_contract(self) -> Contract:
         _LOGGER.debug("Goldenergy API Contract")
 
-        if (self._contract is not None) and (self._contract.contractNo == contract_number):
-            return self._contract.lastInvoice
-
         url = ENDPOINT + CONTRACT_LIST_PATH
+
+        contracts_api_response = await self._connection.api_request(url)
+        contracts = contracts_api_response["result"]
+
+        if len(contracts["contracts"]) > 1:
+            for contract in contracts["contracts"]:
+                if contract["status"] == 1:
+                    self._contract = Contract.from_dict(contract)
+                    break
+
+        elif len(contracts["contracts"]) == 1:
+            self._contract = Contract.from_dict(contracts["contracts"][0])
+
+        return self._contract
+
+    async def get_last_invoice(self, contract_number: str = None) -> LastInvoice:
+        _LOGGER.debug("Goldenergy API Contract")
+
+        if contract_number is None:
+            await self.get_latest_contract()
+            contract_number = self._contract.contractNo
+
+        url = ENDPOINT + CONTRACT_PATH
 
         contract_api_response = await self._connection.api_request(url, params={"ContractNo": contract_number})
         contract = contract_api_response["result"]
@@ -57,8 +82,12 @@ class Goldenergy:
         self._contract = Contract.from_dict(contract)
         return self._contract.lastInvoice
 
-    async def get_last_consumption(self, contract_no: str) -> [Consumption]:
+    async def get_last_consumption(self, contract_no: str = None):
         _LOGGER.debug("Goldenergy API Consumptions")
+
+        if contract_no is None:
+            await self.get_latest_contract()
+            contract_no = self._contract.contractNo
 
         url = ENDPOINT + CONSUMPTIONS_PATH
 

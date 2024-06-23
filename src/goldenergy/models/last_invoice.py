@@ -21,6 +21,9 @@ class LastInvoice:
 
     @classmethod
     def from_dict(cls, data):
+        if data is None:
+            return None
+
         return cls(
             entryNo=data.get("entryNo"),
             customerNo=data.get("customerNo"),

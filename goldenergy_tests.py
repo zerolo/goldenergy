@@ -156,6 +156,14 @@ def setup_mocks():
         }
     }
 
+    contract_list_response = {
+        "result": {
+            "contracts": [
+                contract_response["result"]
+            ]
+        }
+    }
+
     last_consumption_result = {
         "result": {
             "items": [
@@ -219,11 +227,13 @@ def setup_mocks():
     mock_post_get_contract = create_mock(200, contract_response, token_response)
     mock_post_failure = create_mock(200, contract_response, token_no_response)
     mock_post_get_last_consumption = create_mock(200, last_consumption_result, token_response)
+    mock_post_get_contract_list_consumption = create_mock(200, contract_list_response, token_response)
 
     yield {
         "mock_post_get_contract": mock_post_get_contract,
         "post_failure": mock_post_failure,
-        "mock_post_get_last_consumption": mock_post_get_last_consumption
+        "mock_post_get_last_consumption": mock_post_get_last_consumption,
+        "mock_post_get_contract_list_consumption": mock_post_get_contract_list_consumption
     }
 
 
@@ -231,9 +241,9 @@ def setup_mocks():
 async def test_login_success(setup_mocks):
     mock = setup_mocks.get("mock_post_get_contract")
 
-    goldenergy = Goldenergy(mock)
+    goldenergy = Goldenergy(mock, "111", "222")
 
-    response = await goldenergy.login("111", "222")
+    response = await goldenergy.login()
     assert response
 
     await mock.close()
@@ -243,9 +253,9 @@ async def test_login_success(setup_mocks):
 async def test_login_failed(setup_mocks):
     mock = setup_mocks.get("post_failure")
 
-    goldenergy = Goldenergy(mock)
+    goldenergy = Goldenergy(mock, "", "")
 
-    response = await goldenergy.login("", "")
+    response = await goldenergy.login()
     assert not response
 
     await mock.close()
@@ -255,9 +265,9 @@ async def test_login_failed(setup_mocks):
 async def test_get_contract_success(setup_mocks):
     mock = setup_mocks.get("mock_post_get_contract")
 
-    goldenergy = Goldenergy(mock)
+    goldenergy = Goldenergy(mock, "111", "222")
 
-    response = await goldenergy.login("111", "222")
+    response = await goldenergy.login()
     assert response
 
     contract = await goldenergy.get_contract("111")
@@ -270,9 +280,9 @@ async def test_get_contract_success(setup_mocks):
 async def test_get_last_invoice_success(setup_mocks):
     mock = setup_mocks.get("mock_post_get_contract")
 
-    goldenergy = Goldenergy(mock)
+    goldenergy = Goldenergy(mock, "111", "222")
 
-    response = await goldenergy.login("111", "222")
+    response = await goldenergy.login()
     assert response
 
     last_invoice = await goldenergy.get_last_invoice("111")
@@ -286,16 +296,31 @@ async def test_get_last_invoice_success(setup_mocks):
 async def test_get_last_consumptions_success(setup_mocks):
     mock = setup_mocks.get("mock_post_get_last_consumption")
 
-    goldenergy = Goldenergy(mock)
+    goldenergy = Goldenergy(mock, "111", "222")
 
-    response = await goldenergy.login("111", "222")
+    response = await goldenergy.login()
     assert response
 
     last_consumptions = await goldenergy.get_last_consumption("111")
-    assert last_consumptions[0].meter.meterNo == "123456789"
-    assert last_consumptions[0].energy_type == "GAS"
-    assert last_consumptions[1].meter.meterNo == "987654321"
-    assert last_consumptions[1].energy_type == "ELECTRICITY"
+    assert last_consumptions["GAS"].meter.meterNo == "123456789"
+    assert last_consumptions["GAS"].energy_type == "GAS"
+    assert last_consumptions["ELECTRICITY"].meter.meterNo == "987654321"
+    assert last_consumptions["ELECTRICITY"].energy_type == "ELECTRICITY"
+
+    await mock.close()
+
+
+@pytest.mark.asyncio
+async def test_get_active_contract_success(setup_mocks):
+    mock = setup_mocks.get("mock_post_get_contract_list_consumption")
+
+    goldenergy = Goldenergy(mock, "111", "222")
+
+    response = await goldenergy.login()
+    assert response
+
+    active_contract = await goldenergy.get_active_contract()
+    assert active_contract.contractNo == "111"
 
     await mock.close()
 

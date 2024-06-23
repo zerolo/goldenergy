@@ -13,6 +13,9 @@ class PaymentOwner:
 
     @classmethod
     def from_dict(cls, data):
+        if data is None:
+            return None
+
         return cls(
             customerNo=data.get("customerNo"),
             name=data.get("name"),
