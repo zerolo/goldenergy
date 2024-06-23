@@ -1,5 +1,4 @@
 import logging
-import json
 
 from .connection import Connection
 from .const import *
@@ -9,15 +8,13 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-class Goldenergy(dict):
+class Goldenergy:
     def __init__(self, session, code, password):
         self._connection = Connection(session)
         self._contract: Contract = None
         self._last_consumption = None
         self._code = code
         self._password = password
-
-        dict.__init__(self, session=session, code=code, password=password)
 
     async def login(self):
         _LOGGER.debug("Goldenergy API Login")
@@ -71,7 +68,7 @@ class Goldenergy(dict):
         _LOGGER.debug("Goldenergy API Contract")
 
         if contract_number is None:
-            await self.get_latest_contract()
+            await self.get_active_contract()
             contract_number = self._contract.contractNo
 
         url = ENDPOINT + CONTRACT_PATH
@@ -86,7 +83,7 @@ class Goldenergy(dict):
         _LOGGER.debug("Goldenergy API Consumptions")
 
         if contract_no is None:
-            await self.get_latest_contract()
+            await self.get_active_contract()
             contract_no = self._contract.contractNo
 
         url = ENDPOINT + CONSUMPTIONS_PATH
