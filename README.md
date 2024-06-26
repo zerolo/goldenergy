@@ -8,7 +8,7 @@
 ```python
 import asyncio
 import aiohttp
-from src.goldenergy import Goldenergy
+from goldenergy import Goldenergy
 
 
 async def main():
@@ -19,7 +19,7 @@ async def main():
 
     print("CONTRACT: ", await goldenergy.get_contract("<CONTRACT_NUMBER>"))
 
-    print("LATEST CONTRACT: ", await goldenergy.get_latest_contract())
+    print("LATEST CONTRACT: ", await goldenergy.get_active_contract())
 
     print("LAST INVOICE: ", await goldenergy.get_last_invoice("<CONTRACT_NUMBER>"))
 
